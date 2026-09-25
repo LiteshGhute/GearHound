@@ -23,6 +23,7 @@
   <a href="#-quick-start">Quick Start</a> ·
   <a href="#-two-ways-to-drive">Two Views</a> ·
   <a href="#-attack-console">Attack Console</a> ·
+  <a href="#-real-world-parallels">Real-World Parallels</a> ·
   <a href="#-vehicle-profiles">Vehicles</a> ·
   <a href="#-configuration">Configuration</a>
 </p>
@@ -185,6 +186,45 @@ Captures are held in backend memory and are lost when the backend restarts.
 <p align="center">
   <img src="assets/screenshot-attack-console.png" alt="A live fuzzing attack in progress, with random arbitration IDs flooding the traffic monitor" width="85%" />
 </p>
+
+## 🌍 Real-World Parallels
+
+None of this is invented. Every attack mode in GearHound has a documented
+real-world counterpart, this is what the simulator is standing in for:
+
+- **Signal spoofing** is exactly what Charlie Miller and Chris Valasek did
+  to a Jeep Cherokee in 2015: after gaining remote access through the
+  vehicle's cellular-connected infotainment unit, they pivoted onto the
+  CAN bus and sent forged messages the instrument cluster and other
+  modules trusted at face value, while a journalist was driving it on a
+  highway. Fiat Chrysler recalled 1.4 million vehicles as a result. The
+  same forged-value technique, at a much less dramatic scale, is also the
+  basis of digital odometer fraud: commercial "mileage correction" tools
+  plug into the OBD-II port and rewrite the values a car's modules report,
+  the same trust-whatever-arrives-last weakness GearHound's spoofing card
+  demonstrates live.
+- **Fuzzing** an unfamiliar CAN bus to find out what an arbitration ID
+  actually controls, without any documentation, is standard automotive
+  security research methodology, the same approach Miller and Valasek
+  used in their earlier (2013-2014) published work reverse-engineering
+  Toyota and Ford vehicles message by message.
+- **Flood / DoS** models the class of attack published security research
+  has demonstrated against real CAN buses: exploiting the protocol's own
+  error-handling rules to force a targeted ECU off the bus using nothing
+  but frames injected from another node, no physical tampering required.
+- **Capture and replay** is the oldest trick in CAN security, recording
+  legitimate traffic and sending it back verbatim, traced back to the
+  field's founding academic work, "Experimental Security Analysis of a
+  Modern Automobile" (Koscher et al., IEEE Security & Privacy, 2010),
+  which first showed that packet capture and replay against a real car's
+  internal network could unlock doors and manipulate the dashboard.
+
+The common thread across all four, and the one thing every fix in GearHound
+keeps coming back to: a CAN bus has no built-in authentication. Nothing on
+the wire asks "who sent this?", so every device connected to it has to
+trust every frame that arrives. That is the single assumption every attack
+here exploits, and it is the same assumption real vehicles have had to be
+patched, recalled, or architecturally redesigned around.
 
 ### Step-by-step attack walkthroughs
 

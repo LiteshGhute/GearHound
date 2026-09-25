@@ -23,6 +23,29 @@ result is not a glitch, it is a sustained, convincing override. On a real
 vehicle this is the mechanism behind attacks like disguising a car's true
 road speed from telematics or a driver display.
 
+## Real-world case study
+
+This is not a theoretical attack. In July 2015, security researchers
+Charlie Miller and Chris Valasek remotely compromised a Jeep Cherokee's
+Uconnect infotainment system over its cellular connection, then pivoted
+from there onto the vehicle's internal CAN bus. From that position they
+could send exactly this kind of forged message: frames the instrument
+cluster, transmission, and other modules had no way to distinguish from
+legitimate ones. Wired documented the result from inside the car,
+reporting that the researchers were able to affect the dashboard,
+transmission, and (at low speed) the brakes, while a journalist drove it
+on a highway. Fiat Chrysler recalled 1.4 million vehicles afterward, and
+the incident remains one of the most cited case studies in automotive
+security precisely because the underlying weakness, no authentication on
+the internal network, is architectural, not a bug that a patch quietly
+fixes.
+
+A lower-stakes but far more common relative of the same idea is digital
+odometer fraud: commercial "mileage correction" tools connect to a car's
+OBD-II port and rewrite the mileage value its modules report, the same
+"whichever write arrives is trusted" weakness this walkthrough demonstrates
+live, just aimed at defrauding a future buyer instead of a driver's safety.
+
 ## Solution
 
 **Step 1.** Open GearHound and confirm the baseline: the car is stationary
