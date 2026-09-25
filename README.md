@@ -186,6 +186,12 @@ Captures are held in backend memory and are lost when the backend restarts.
   <img src="assets/screenshot-attack-console.png" alt="A live fuzzing attack in progress, with random arbitration IDs flooding the traffic monitor" width="85%" />
 </p>
 
+### Step-by-step attack walkthroughs
+
+Full solution manuals, with screenshots, live in [`manuals/`](manuals/):
+
+- [Signal Spoofing: Faking the Speedometer](manuals/Signal-Spoofing-Attack.md), a full walkthrough of finding the speed signal's arbitration ID from live traffic, then pinning the dashboard to a fake value while the car sits still.
+
 ## 🚙 Vehicle Profiles
 
 Different vehicles, different signal maps. Switch profiles to explore how the same kind of signal can appear under another arbitration ID or byte offset.
@@ -264,6 +270,7 @@ This builds and previews the frontend only; it does not provide a production bac
 | Path | Responsibility |
 | :--- | :--- |
 | [`assets/`](assets/) | Logo, screenshots, and the demo GIF used in this README. |
+| [`manuals/`](manuals/) | Step-by-step attack solution manuals with screenshots. |
 | [`backend/app.py`](backend/app.py) | Flask-SocketIO server, vehicle physics, connection tracking, and live broadcasts. |
 | [`backend/can_bus.py`](backend/can_bus.py) | Virtual CAN and SocketCAN wrapper. |
 | [`backend/state.py`](backend/state.py) | Vehicle state and CAN frame decoding. |
