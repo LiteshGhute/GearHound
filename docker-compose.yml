@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      CAN_BUSTYPE: virtual
+      CAN_CHANNEL: gearhound
+      PORT: 4000
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Reaches the backend from the browser on the host, not from inside
+        # the frontend container -- so this must stay a host-facing URL
+        # (localhost:<published port>), not a Docker-internal service name.
+        VITE_BACKEND_URL: http://localhost:4000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

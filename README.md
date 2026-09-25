@@ -144,6 +144,41 @@ npm run dev
 
 Open **[http://localhost:5173](http://localhost:5173)** in your browser. The backend listens on port **4000** by default.
 
+### Or skip all of that: Docker
+
+```bash
+git clone https://github.com/LiteshGhute/GearHound.git
+cd GearHound
+docker compose up --build
+```
+
+Open **[http://localhost:5173](http://localhost:5173)**. Two containers: the backend
+(`CAN_BUSTYPE=virtual`, no host CAN interface needed) on port `4000`, and the
+frontend built and served through nginx on port `5173`. Both defined in
+[`docker-compose.yml`](docker-compose.yml); the [`backend/`](backend/Dockerfile) and
+[`frontend/`](frontend/Dockerfile) Dockerfiles can also be built standalone.
+
+Vite inlines `VITE_BACKEND_URL` into the built JS at build time, not at
+container start, so if the backend won't be reachable at `localhost:4000` from
+wherever the browser runs (a remote host, a different port mapping), rebuild
+the frontend with that URL instead:
+
+```bash
+docker compose build --build-arg VITE_BACKEND_URL=http://your-host:4000 frontend
+```
+
+To point the backend at a real Linux `vcan0` interface instead of the
+built-in virtual bus, run its container with `socketcan` and host networking
+(the container needs to see the host's network interfaces directly, the way
+GearGoat's original container did):
+
+```bash
+docker build -t gearhound-backend ./backend
+docker run --network=host --privileged \
+  -e CAN_BUSTYPE=socketcan -e CAN_CHANNEL=vcan0 \
+  gearhound-backend
+```
+
 ## 🖥️ Two Ways to Drive
 
 **Top-Down** is the classic bird's-eye dashboard: gauges up top, the car in the middle, pedals below. The car itself is animated, its wheels spin faster as speed climbs, indicator lamps blink in sync with the real turn signal, headlight beams and brake lights switch on and off, and a scrolling lane line behind it sells the sense of motion.
@@ -311,6 +346,8 @@ This builds and previews the frontend only; it does not provide a production bac
 | :--- | :--- |
 | [`assets/`](assets/) | Logo, screenshots, and the demo GIF used in this README. |
 | [`manuals/`](manuals/) | Step-by-step attack solution manuals with screenshots. |
+| [`docker-compose.yml`](docker-compose.yml) | Runs the backend and frontend together in containers. |
+| [`backend/Dockerfile`](backend/Dockerfile), [`frontend/Dockerfile`](frontend/Dockerfile) | Standalone container builds for each half. |
 | [`backend/app.py`](backend/app.py) | Flask-SocketIO server, vehicle physics, connection tracking, and live broadcasts. |
 | [`backend/can_bus.py`](backend/can_bus.py) | Virtual CAN and SocketCAN wrapper. |
 | [`backend/state.py`](backend/state.py) | Vehicle state and CAN frame decoding. |
@@ -356,6 +393,18 @@ The project enables Vite's strict-port option. Stop the process using that port,
 ```bash
 npm run dev -- --port 5174
 ```
+
+</details>
+
+<details>
+<summary><strong>Docker: the UI loads but never connects to the backend</strong></summary>
+
+`VITE_BACKEND_URL` gets baked into the frontend's JS when its image is
+built, not read at container start. If the backend is not reachable at
+`localhost:4000` from wherever the browser is running, rebuild the
+frontend with the correct URL (see the Docker section above) rather than
+just setting an environment variable on the running container, that has
+no effect on an already-built image.
 
 </details>
 
