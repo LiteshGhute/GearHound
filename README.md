@@ -267,6 +267,8 @@ Full solution manuals, with screenshots, live in [`manuals/`](manuals/):
 
 - [Signal Spoofing: Faking the Speedometer](manuals/Signal-Spoofing-Attack.md), a full walkthrough of finding the speed signal's arbitration ID from live traffic, then pinning the dashboard to a fake value while the car sits still.
 
+More walkthroughs, covering fuzzing, flood/DoS, and capture and replay, are coming soon.
+
 ## 🚙 Vehicle Profiles
 
 Different vehicles, different signal maps. Switch profiles to explore how the same kind of signal can appear under another arbitration ID or byte offset.
