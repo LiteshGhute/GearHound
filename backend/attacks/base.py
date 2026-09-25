@@ -5,6 +5,16 @@ import time
 import uuid
 
 
+def param_int(params: dict, key: str, default: int) -> int:
+    """dict.get(key, default) only falls back to `default` when the key is
+    ABSENT -- a client that sends the key with a JSON `null` gets `None`
+    back instead, and int(None) crashes the attack thread with a raw
+    TypeError surfaced verbatim in the Attack Log. Treat "present but
+    null" the same as "absent"."""
+    value = params.get(key)
+    return default if value is None else int(value)
+
+
 class RunningAttack:
     """One in-flight attack instance. Runs `worker` in a daemon thread until
     stopped, and streams structured log lines back through `on_event`."""

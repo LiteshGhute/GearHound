@@ -23,6 +23,19 @@ class AttackManager:
         self.bus.subscribe(self._feed_active_capture)
 
     # ---- recording (for replay) --------------------------------------
+    def _unique_capture_name(self, name: str) -> str:
+        # The frontend's capture-name field defaults to a static
+        # "capture-1" that nobody has to edit, so recording twice in a row
+        # with the field untouched is the COMMON case, not a rare misuse.
+        # Silently overwriting `self.captures[name]` would destroy the
+        # earlier finished recording with no warning; rename instead.
+        if name not in self.captures:
+            return name
+        n = 2
+        while f"{name}-{n}" in self.captures:
+            n += 1
+        return f"{name}-{n}"
+
     def start_capture(self, name: str) -> dict:
         # Starting a new recording used to silently orphan an in-progress
         # one: its frame count would just freeze with no event telling
@@ -31,6 +44,7 @@ class AttackManager:
         if self._active_capture is not None:
             self.stop_capture()
 
+        name = self._unique_capture_name(name)
         cap = CaptureBuffer(name)
         cap.start()
         self.captures[name] = cap

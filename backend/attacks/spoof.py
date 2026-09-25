@@ -8,6 +8,7 @@ spamming the legit writer effectively pins the value.
 
 import time
 
+from attacks.base import param_int
 from can_bus import pack_uint
 from vehicles.profiles import VehicleProfile
 
@@ -15,7 +16,7 @@ from vehicles.profiles import VehicleProfile
 def run_spoof(attack, bus, profile: VehicleProfile) -> None:
     signal_name = attack.params.get("signal")
     value = attack.params.get("value")
-    rate_hz = max(1, int(attack.params.get("rate_hz", 50)))
+    rate_hz = max(1, param_int(attack.params, "rate_hz", 50))
     duration = attack.params.get("duration")
 
     spec = profile.signals.get(signal_name)

@@ -6,11 +6,13 @@ does by hand with cansniffer's "freeze unchanging bytes" trick.
 
 import random
 
+from attacks.base import param_int
+
 
 def run_fuzz(attack, bus) -> None:
-    id_min = int(attack.params.get("id_min", 0x000))
-    id_max = int(attack.params.get("id_max", 0x7FF))
-    rate_hz = max(1, int(attack.params.get("rate_hz", 20)))
+    id_min = param_int(attack.params, "id_min", 0x000)
+    id_max = param_int(attack.params, "id_max", 0x7FF)
+    rate_hz = max(1, param_int(attack.params, "rate_hz", 20))
     mode = attack.params.get("mode", "random")  # "random" | "incremental"
     duration = attack.params.get("duration")  # seconds, None = until stopped
 

@@ -54,37 +54,76 @@ MAX_SPEED = 220
 MAX_RPM = 6500
 IDLE_RPM = 800
 
-# Tracks which client's mousedown last claimed each "held" control, so a
-# disconnect can reset ONLY the input that client actually owned. Counting
-# total connected clients (an earlier version of this) gets this wrong: an
-# idle spectator tab left open masks a runaway car left by the tab that was
-# actually driving and then disconnected mid-press.
-_owners_lock = threading.Lock()
-_control_owners = {"throttle": None, "turning": None, "horn": None}
+# Tracks every client currently holding each "held" control active (not
+# just the most recent one), keyed by control name -> {sid: value}. A
+# single global "owner" (an earlier version of this) only gated disconnect
+# cleanup, not ordinary writes: if client A held accelerate and client B
+# also pressed it, A releasing its own key unconditionally zeroed the
+# shared value and cancelled B's still-active press too. The effective
+# value is whichever active holder's press is most recent (re-inserting a
+# key on update moves it to the end, so `reversed()` finds it), and
+# releasing (or disconnecting) removes only that one sid, recomputing the
+# effective value from whoever else is still holding it.
+_holders_lock = threading.Lock()
+_control_holders = {"throttle": {}, "turning": {}, "horn": {}}
 
 
-def _set_owner(control: str, sid, active: bool) -> None:
-    with _owners_lock:
-        _control_owners[control] = sid if active else None
+def _update_holders(control: str, sid, value) -> int:
+    with _holders_lock:
+        holders = _control_holders[control]
+        holders.pop(sid, None)
+        if value:
+            holders[sid] = value
+        return next(reversed(holders.values())) if holders else 0
 
 
-def set_throttle(value: int, sid=None) -> None:
+def _release_all_holders(sid) -> dict:
+    """Remove sid from every control it was holding (e.g. on disconnect).
+    Returns {control: recomputed_effective_value} for controls it affected."""
+    changed = {}
+    with _holders_lock:
+        for control, holders in _control_holders.items():
+            if sid in holders:
+                del holders[sid]
+                changed[control] = next(reversed(holders.values())) if holders else 0
+    return changed
+
+
+def _reset_all_holders() -> None:
+    with _holders_lock:
+        for holders in _control_holders.values():
+            holders.clear()
+
+
+def _apply_throttle(value: int) -> None:
     global _throttle
     with _control_lock:
         _throttle = value
-    _set_owner("throttle", sid, value != 0)
 
 
-def set_turning(value: int, sid=None) -> None:
+def _apply_turning(value: int) -> None:
     global _turning
     with _control_lock:
         _turning = value
-    _set_owner("turning", sid, value != 0)
+
+
+def _apply_horn(value: int) -> None:
+    state.write_signal("horn", 1 if value else 0)
+
+
+_CONTROL_APPLIERS = {"throttle": _apply_throttle, "turning": _apply_turning, "horn": _apply_horn}
+
+
+def set_throttle(value: int, sid=None) -> None:
+    _apply_throttle(_update_holders("throttle", sid, value))
+
+
+def set_turning(value: int, sid=None) -> None:
+    _apply_turning(_update_holders("turning", sid, value))
 
 
 def set_horn(value: int, sid=None) -> None:
-    state.write_signal("horn", 1 if value else 0)
-    _set_owner("horn", sid, bool(value))
+    _apply_horn(_update_holders("horn", sid, 1 if value else 0))
 
 
 def physics_loop() -> None:
@@ -177,20 +216,14 @@ def on_connect():
 def on_disconnect():
     # A held pedal, indicator, or horn press sends an "active" value on
     # mousedown and a neutral one on mouseup, but a page refresh or a
-    # closed tab while it's held never fires that mouseup. Reset only the
-    # controls THIS client actually owned (see _control_owners above), so
-    # an idle spectator tab disconnecting never touches input someone else
+    # closed tab while it's held never fires that mouseup. Release only
+    # the controls THIS client was holding (see _control_holders above),
+    # recomputing each from whoever else may still be holding it, so an
+    # idle spectator tab disconnecting never touches input someone else
     # is still actively holding, and a driving tab disconnecting can't be
     # masked by other tabs merely being connected.
-    sid = request.sid
-    with _owners_lock:
-        owned = [name for name, owner in _control_owners.items() if owner == sid]
-    if "throttle" in owned:
-        set_throttle(0)
-    if "turning" in owned:
-        set_turning(0)
-    if "horn" in owned:
-        set_horn(0)
+    for control, value in _release_all_holders(request.sid).items():
+        _CONTROL_APPLIERS[control](value)
 
 
 @socketio.on("control")
@@ -222,8 +255,13 @@ def on_control(data, *_ignored):
 def on_vehicle_select(data, *_ignored):
     key = data.get("profile", DEFAULT_PROFILE_KEY)
     state.set_profile(key)
-    set_throttle(0)
-    set_turning(0)
+    # A hard reset: clears every client's held input, not just whichever
+    # value would win the normal holders-based arbitration, since switching
+    # cars should never leave someone's stale press from the old vehicle
+    # still steering the new one.
+    _reset_all_holders()
+    _apply_throttle(0)
+    _apply_turning(0)
     socketio.emit("car_state", state.snapshot())
     socketio.emit("vehicles", {"profiles": list_profiles(), "active": state.profile.key})
 

@@ -8,12 +8,14 @@ legitimate frames while the flood is active, so the effect is visible live.
 
 import time
 
+from attacks.base import param_int
+
 
 def run_flood(attack, bus) -> None:
-    arb_id = int(attack.params.get("arb_id", 0x000))
-    rate_hz = max(1, int(attack.params.get("rate_hz", 500)))
+    arb_id = param_int(attack.params, "arb_id", 0x000)
+    rate_hz = max(1, param_int(attack.params, "rate_hz", 500))
     duration = attack.params.get("duration")  # seconds, None = until stopped
-    payload = bytes(attack.params.get("payload", [0xFF] * 8))
+    payload = bytes(attack.params.get("payload") or [0xFF] * 8)
 
     interval = 1.0 / rate_hz
     # Saturate congestion quickly, cap below 1.0 so a trickle of legit

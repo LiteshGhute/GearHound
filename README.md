@@ -158,6 +158,13 @@ frontend built and served through nginx on port `5173`. Both defined in
 [`docker-compose.yml`](docker-compose.yml); the [`backend/`](backend/Dockerfile) and
 [`frontend/`](frontend/Dockerfile) Dockerfiles can also be built standalone.
 
+**Stop the dev servers first if they're running.** Compose publishes the
+containers on the same host ports (`4000`, `5173`) the local dev workflow
+above uses. On some Docker Desktop setups this doesn't even fail loudly,
+both can end up listening at once, and which one actually answers a given
+request becomes unpredictable. Use one workflow or the other, not both at
+the same time.
+
 Vite inlines `VITE_BACKEND_URL` into the built JS at build time, not at
 container start, so if the backend won't be reachable at `localhost:4000` from
 wherever the browser runs (a remote host, a different port mapping), rebuild
