@@ -19,7 +19,7 @@
 <p align="center">
   <a href="#-the-lab">Overview</a> ·
   <a href="#-demo">Demo</a> ·
-  <a href="#-under-the-hood">Features</a> ·
+  <a href="#-features">Features</a> ·
   <a href="#-quick-start">Quick Start</a> ·
   <a href="#-two-ways-to-drive">Two Views</a> ·
   <a href="#-attack-console">Attack Console</a> ·
@@ -48,6 +48,30 @@ GearHound brings together a live dashboard, three switchable vehicle profiles, a
 The default **virtual CAN mode** runs entirely in Python on Linux, macOS, and Windows. For a Linux CAN lab, switch to **SocketCAN** and connect to an existing interface such as `vcan0`.
 
 <p align="center"><strong>🚗 3 Vehicle Profiles &nbsp; • &nbsp; ⚡ 4 Attack Modes &nbsp; • &nbsp; 📡 Live CAN Traffic &nbsp; • &nbsp; 🧪 No Hardware Required in Virtual Mode</strong></p>
+
+## ✨ Features
+
+**Driving experience**
+- Two driving views, a top-down dashboard and a first-person Driver View, switchable at any time, sharing the exact same controls and backend signals.
+- A genuinely animated car, not a static status display: wheels spin faster as speed climbs, a lane line scrolls beneath the car, turn-signal lamps blink in sync with the real signal state, headlight beams switch on and off, brake lights glow under braking, and speed-line streaks appear at high speed.
+- A Driver View cockpit: a perspective road receding to a vanishing point, a live HUD (speed, an RPM bar that redlines, fuel), headlight cones on the road at night, a red brake vignette, a horn ripple, door-lock status shown as side mirrors, and a steering wheel silhouette.
+
+**Attack console**
+- Fuzzing: sweep a range of arbitration IDs with random or incremental payloads to discover undocumented signals.
+- Flood / DoS: saturate the bus with a high-priority frame, with modeled bus congestion that visibly drops legitimate signal updates while it runs.
+- Signal spoofing: continuously force a chosen signal to a value at a configurable rate, an ongoing override, not a one-shot injection.
+- Capture and replay: record real bus traffic and play it back verbatim, at adjustable speed, optionally looped.
+- A live traffic monitor showing arbitration IDs, payload bytes, and per-ID change counts as frames arrive, plus a scrolling raw log view.
+
+**Vehicle simulation**
+- Three switchable vehicle profiles (Sedan LX, Trailhawk SUV, Ironhide Truck), each with a different arbitration ID map. The SUV even packs two signals into the same frame at different byte offsets.
+- One unified backend process that writes legitimate signals, runs every attack, and decodes whatever is on the bus, closer to how a real ECU behaves than a split controller/simulator design.
+- Two CAN backends: an in-process virtual bus that needs no OS-level CAN support (works on macOS, Windows, and Linux), or SocketCAN for a real Linux `vcan0` interface.
+
+**Reliability**
+- Refresh-safe: closing or reloading the tab mid-drive resets vehicle input instead of leaving the car accelerating forever with nobody in control.
+- Reconnecting restores full state: vehicle state, vehicle list, running attacks, and saved captures, so a refreshed browser always shows the live, authoritative state.
+- Finished attacks clean up after themselves instead of leaving phantom "Stop" buttons or leaking memory over a long session.
 
 ## ⚙️ Under the Hood
 
