@@ -32,10 +32,10 @@
 ## 🎥 Demo
 
 <p align="center">
-  <img src="assets/demo.gif" alt="GearHound demo: driving in both views, switching vehicles, and running a live fuzzing attack" width="820" />
+  <img src="assets/demo.gif" alt="GearHound demo: headlights, doors, driving with turn signals and braking, switching vehicles, both views, and a live fuzzing attack" width="820" />
 </p>
 
-<p align="center"><em>Driving in both views, switching vehicle profiles, and running a live fuzzing attack while the CAN traffic monitor updates in real time.</em></p>
+<p align="center"><em>Headlights, door locks, accelerating and braking with turn signals, switching vehicle profiles, driving in both the top-down and Driver View, and a live fuzzing attack while the CAN traffic monitor updates in real time.</em></p>
 
 ---
 
