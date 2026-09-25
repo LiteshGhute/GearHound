@@ -18,12 +18,24 @@
 
 <p align="center">
   <a href="#-the-lab">Overview</a> ·
+  <a href="#-demo">Demo</a> ·
   <a href="#-under-the-hood">Features</a> ·
   <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-two-ways-to-drive">Two Views</a> ·
   <a href="#-attack-console">Attack Console</a> ·
   <a href="#-vehicle-profiles">Vehicles</a> ·
   <a href="#-configuration">Configuration</a>
 </p>
+
+---
+
+## 🎥 Demo
+
+<p align="center">
+  <img src="assets/demo.gif" alt="GearHound demo: driving in both views, switching vehicles, and running a live fuzzing attack" width="820" />
+</p>
+
+<p align="center"><em>Driving in both views, switching vehicle profiles, and running a live fuzzing attack while the CAN traffic monitor updates in real time.</em></p>
 
 ---
 
@@ -41,14 +53,15 @@ The default **virtual CAN mode** runs entirely in Python on Linux, macOS, and Wi
 
 | Capability | What you get |
 | :--- | :--- |
-| 🏎️ **Live vehicle dashboard** | Speed, RPM, fuel, doors, turn signals, headlights, and horn state. |
+| 🏎️ **Live, animated dashboard** | Spinning wheels, a scrolling road, blinking indicators, headlight beams, and brake-light glow, all driven directly by real CAN state, not canned animation. |
+| 🚘 **Two driving views** | A top-down dashboard and a first-person **Driver View** with a perspective road, HUD, and steering wheel. Switch anytime. |
 | 🎮 **Interactive controls** | Accelerate, brake, steer the turn signals, and operate vehicle controls. |
 | 📡 **Traffic monitor** | Watch arbitration IDs, payload bytes, and timestamps as frames arrive. |
 | 🧨 **Built-in attack console** | Launch and stop fuzzing, flooding, spoofing, and replay from the UI. |
 | 🔀 **Switchable vehicle profiles** | Explore different CAN ID maps and signals packed at different byte offsets. |
 | 🧠 **Unified backend** | One process generates legitimate signals, runs attacks, and decodes bus traffic. |
 | 💻 **Two CAN backends** | Use an in-process virtual bus or a Linux SocketCAN interface. |
-| 🌑 **Dark dashboard theme** | A focused interface for watching vehicle state and bus activity together. |
+| 🔌 **Refresh-safe** | Closing or reloading the tab mid-drive resets vehicle input instead of leaving the car accelerating forever with nobody in control. |
 
 ## 🚀 Quick Start
 
@@ -106,13 +119,31 @@ npm run dev
 
 Open **[http://localhost:5173](http://localhost:5173)** in your browser. The backend listens on port **4000** by default.
 
+## 🖥️ Two Ways to Drive
+
+**Top-Down** is the classic bird's-eye dashboard: gauges up top, the car in the middle, pedals below. The car itself is animated, its wheels spin faster as speed climbs, indicator lamps blink in sync with the real turn signal, headlight beams and brake lights switch on and off, and a scrolling lane line behind it sells the sense of motion.
+
+<p align="center">
+  <img src="assets/screenshot-topdown.png" alt="GearHound top-down dashboard, idle" width="47%" />
+  <img src="assets/screenshot-topdown-driving.png" alt="GearHound top-down dashboard, driving with left indicator and headlights on" width="47%" />
+</p>
+
+**Driver View** puts you in the seat: a perspective road stretches out ahead with a scrolling centerline, headlight cones spill onto the road at night, braking pulses a red vignette at the screen edges, and a HUD shows live speed, an RPM bar that redlines, and a fuel bar. Door-lock state for the front two doors shows up as small mirrors in the corners.
+
+<p align="center">
+  <img src="assets/screenshot-driver-view.png" alt="GearHound Driver View: perspective road, HUD, and headlight cones" width="70%" />
+</p>
+
+Both views, and the pedal and indicator controls beneath them, share one control hook, so pressing a button in either view produces the exact same backend signal and the exact same instant visual feedback.
+
 ## 🎮 Your First Session
 
 1. **Pick a vehicle.** Start with Sedan LX to explore the baseline signal layout.
 2. **Drive the simulation.** Use the controls and watch the dashboard respond.
-3. **Follow the traffic.** Compare changes in the dashboard with changing CAN payloads.
-4. **Explore the attack console.** Observe how simulated vehicle state responds to injected traffic.
-5. **Switch profiles.** Move to the SUV or Truck and investigate the new ID map.
+3. **Switch views.** Try Driver View for the first-person cockpit, then switch back.
+4. **Follow the traffic.** Compare changes in the dashboard with changing CAN payloads.
+5. **Explore the attack console.** Observe how simulated vehicle state responds to injected traffic.
+6. **Switch profiles.** Move to the SUV or Truck and investigate the new ID map.
 
 ## 🧨 Attack Console
 
@@ -126,6 +157,10 @@ Open **[http://localhost:5173](http://localhost:5173)** in your browser. The bac
 **Simulation detail:** flood-induced congestion is modeled by probabilistically dropping legitimate frames. It is not a measurement of physical CAN bus saturation.
 
 Captures are held in backend memory and are lost when the backend restarts.
+
+<p align="center">
+  <img src="assets/screenshot-attack-console.png" alt="A live fuzzing attack in progress, with random arbitration IDs flooding the traffic monitor" width="85%" />
+</p>
 
 ## 🚙 Vehicle Profiles
 
@@ -194,19 +229,28 @@ npm run preview
 
 This builds and previews the frontend only; it does not provide a production backend deployment.
 
+## 🔄 Reliability
+
+- **Refreshing the page is safe.** The backend counts connected clients. If you refresh, or close a tab, while holding the accelerator or an indicator, the socket disconnect is detected and the shared physics input resets to neutral, so the car does not keep accelerating forever with nobody driving. It only resets once the last connected client is gone, so one tab closing never yanks control away from someone still actively driving in another tab.
+- **Reconnecting restores full state.** On every connect, the backend re-sends the current vehicle state, vehicle list, running attacks, and saved captures, so a refreshed browser, or a second browser tab, always shows the live, authoritative state rather than a stale snapshot.
+- **Attacks clean up after themselves.** A finished attack (duration elapsed, replay ended, manually stopped) is dropped from the server's running list so the console never accumulates a phantom "Stop" button, and the manager prunes its own bookkeeping so a long session with many short attacks does not leak memory.
+
 ## 🗂️ Project Map
 
 | Path | Responsibility |
 | :--- | :--- |
-| [`assets/GearHound-logo.png`](assets/GearHound-logo.png) | GearHound logo. |
-| [`backend/app.py`](backend/app.py) | Flask-SocketIO server, vehicle physics, and live broadcasts. |
+| [`assets/`](assets/) | Logo, screenshots, and the demo GIF used in this README. |
+| [`backend/app.py`](backend/app.py) | Flask-SocketIO server, vehicle physics, connection tracking, and live broadcasts. |
 | [`backend/can_bus.py`](backend/can_bus.py) | Virtual CAN and SocketCAN wrapper. |
 | [`backend/state.py`](backend/state.py) | Vehicle state and CAN frame decoding. |
 | [`backend/vehicles/profiles.py`](backend/vehicles/profiles.py) | Vehicle profiles, signal IDs, and byte offsets. |
 | [`backend/attacks/`](backend/attacks/) | Fuzzing, flooding, spoofing, replay, and attack lifecycle management. |
-| [`frontend/src/components/`](frontend/src/components/) | Dashboard, gauges, traffic monitor, attack console, and vehicle selector. |
+| [`frontend/src/components/Dashboard.jsx`](frontend/src/components/Dashboard.jsx) | Animated top-down view. |
+| [`frontend/src/components/DriverView.jsx`](frontend/src/components/DriverView.jsx) | First-person cockpit view. |
+| [`frontend/src/components/`](frontend/src/components/) | Gauges, traffic monitor, attack console, and vehicle selector. |
 | [`frontend/src/hooks/useSocket.js`](frontend/src/hooks/useSocket.js) | Socket.IO connection and frontend state. |
-| [`frontend/src/styles/global.css`](frontend/src/styles/global.css) | Dashboard styling. |
+| [`frontend/src/hooks/useVehicleControls.js`](frontend/src/hooks/useVehicleControls.js) | Shared pedal, indicator, and horn press handling for both views. |
+| [`frontend/src/styles/global.css`](frontend/src/styles/global.css) | Dashboard styling and all animation keyframes. |
 
 ## 🛠️ Troubleshooting
 

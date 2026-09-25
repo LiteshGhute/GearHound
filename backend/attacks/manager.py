@@ -48,7 +48,17 @@ class AttackManager:
         return [c.to_dict() for c in self.captures.values()]
 
     # ---- attacks --------------------------------------------------------
+    def _prune_finished(self) -> None:
+        # RunningAttack objects never get removed on their own once they
+        # finish (list_running just filters them out), so a long session
+        # with many short attacks would otherwise leak them forever.
+        finished = [aid for aid, a in self.running.items() if a.status != "running"]
+        for aid in finished:
+            del self.running[aid]
+
     def start(self, kind: str, params: dict) -> dict:
+        self._prune_finished()
+
         if kind not in ATTACK_KINDS:
             return {"error": f"unknown attack kind '{kind}'"}
 

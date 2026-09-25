@@ -1,4 +1,6 @@
+import { useState } from "react";
 import Dashboard from "./components/Dashboard.jsx";
+import DriverView from "./components/DriverView.jsx";
 import TrafficMonitor from "./components/TrafficMonitor.jsx";
 import AttackConsole from "./components/AttackConsole.jsx";
 import VehicleSelector from "./components/VehicleSelector.jsx";
@@ -22,23 +24,40 @@ export default function App() {
     stopCapture,
   } = useSocket();
 
+  const [view, setView] = useState("topdown"); // "topdown" | "driver"
+
   return (
     <div className="app-shell">
       <header className="app-header">
         <div className="brand">
-          <span className="brand-mark">◈</span>
+          <span className="brand-mark">&#9670;</span>
           <span className="brand-name">GearHound</span>
           <span className="brand-tag">CAN bus attack simulator</span>
         </div>
         <div className="header-right">
+          <div className="view-switch">
+            <button className={view === "topdown" ? "active" : ""} onClick={() => setView("topdown")}>
+              Top-Down
+            </button>
+            <button className={view === "driver" ? "active" : ""} onClick={() => setView("driver")}>
+              Driver View
+            </button>
+          </div>
           <VehicleSelector vehicles={vehicles} selectVehicle={selectVehicle} />
-          <span className={`conn-dot ${connected ? "up" : "down"}`} title={connected ? "connected" : "disconnected"} />
+          <span
+            className={`conn-dot ${connected ? "up" : "down"}`}
+            title={connected ? "connected" : "disconnected"}
+          />
         </div>
       </header>
 
       <main className="app-grid">
         <section className="col-dashboard">
-          <Dashboard carState={carState} busCongestion={busCongestion} sendControl={sendControl} />
+          {view === "topdown" ? (
+            <Dashboard carState={carState} busCongestion={busCongestion} sendControl={sendControl} />
+          ) : (
+            <DriverView carState={carState} sendControl={sendControl} />
+          )}
         </section>
         <section className="col-side">
           <TrafficMonitor traffic={traffic} />

@@ -87,6 +87,33 @@ button, input, select {
   gap: 16px;
 }
 
+.view-switch {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px;
+  background: var(--bg-raised);
+  gap: 2px;
+}
+
+.view-switch button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.view-switch button.active {
+  background: var(--accent);
+  color: #06110f;
+}
+
 .conn-dot {
   width: 10px;
   height: 10px;
@@ -120,6 +147,7 @@ button, input, select {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-height: 0; /* allow shrinking to the grid row's actual height, not content height */
 }
 
 /* The attack console column is naturally much taller than the dashboard
@@ -130,15 +158,29 @@ button, input, select {
 @media (min-width: 981px) {
   .app-grid {
     overflow: hidden;
+    /* Without an explicit row height, the implicit grid row sizes to its
+       tallest item's CONTENT height and can grow past the space actually
+       available -- with overflow:hidden above, anything past that point
+       (e.g. the rear doors/pedals once the animated car got taller) was
+       silently clipped instead of becoming reachable. minmax(0, 1fr) pins
+       the row to exactly the available height instead, so the panels
+       below can do their own internal overflow-y:auto scrolling. This
+       only applies at the two-column breakpoint: in the single-column
+       mobile layout the columns stack and the whole grid scrolls instead
+       (see the max-width:980px rule above), so forcing a 1fr row height
+       there would squeeze the first column into a sliver. */
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .col-dashboard {
     overflow: hidden;
+    min-height: 0;
   }
 
   .col-side {
     overflow-y: auto;
     padding-right: 6px;
+    min-height: 0;
   }
 }
 
@@ -199,6 +241,8 @@ button, input, select {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 22px;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .congestion-banner {
@@ -295,39 +339,96 @@ button, input, select {
 }
 
 .car-topdown {
+  position: relative;
+  height: 300px;
+  border-radius: 18px;
+  overflow: hidden;
+  margin: 6px 0 20px;
+  background: #0b0e16;
+  border: 1px solid var(--border);
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 10px 0 20px;
+}
+
+/* Static asphalt backdrop, plus lane-shoulder markings either side of the
+   car so it visually sits "in a lane" rather than floating in a void. */
+.road {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 0 14%, rgba(255,255,255,0.06) 14% 15.5%, transparent 15.5% 84.5%, rgba(255,255,255,0.06) 84.5% 86%, transparent 86% 100%),
+    radial-gradient(ellipse at 50% 20%, #182034, #090c13 72%);
+}
+
+/* The moving dashed centerline is the piece that actually animates -- its
+   scroll SPEED (animation-duration, set inline from React) is what sells
+   "the car is driving" even though the car sprite itself never moves. */
+.road-lane {
+  position: absolute;
+  left: 50%;
+  top: -60px;
+  bottom: -60px;
+  width: 7px;
+  margin-left: -3.5px;
+  background-image: repeating-linear-gradient(180deg, var(--accent) 0 22px, transparent 22px 50px);
+  opacity: 0.4;
+  animation-name: road-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes road-scroll {
+  from { background-position-y: 0; }
+  to { background-position-y: 50px; }
 }
 
 .car-body {
   position: relative;
-  width: 180px;
-  height: 260px;
-  background: linear-gradient(180deg, #1c2436, #131924);
-  border: 1px solid var(--border);
-  border-radius: 70px / 40px;
+  z-index: 2;
+  width: 150px;
+  height: 220px;
+  background: linear-gradient(180deg, #212b40, #161d2c);
+  border: 1px solid #2c374d;
+  border-radius: 60px / 34px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.2s ease;
+}
+
+.car-body.revving {
+  animation: engine-judder 0.14s ease-in-out infinite;
+}
+
+.car-body.braking {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), 0 10px 26px rgba(255, 77, 109, 0.35);
+}
+
+@keyframes engine-judder {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, 0.6px); }
 }
 
 .windshield {
   position: absolute;
-  top: 30px;
-  left: 30px;
-  right: 30px;
-  height: 60px;
+  top: 26px;
+  left: 24px;
+  right: 24px;
+  height: 52px;
   background: rgba(53, 224, 200, 0.08);
   border: 1px solid var(--border);
-  border-radius: 30px;
+  border-radius: 26px;
+  z-index: 3;
 }
 
 .door {
   position: absolute;
-  width: 46px;
-  height: 70px;
+  z-index: 3;
+  width: 40px;
+  height: 60px;
   border-radius: 8px;
   border: none;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, box-shadow 0.15s ease;
@@ -345,10 +446,123 @@ button, input, select {
   box-shadow: 0 0 10px rgba(82, 224, 123, 0.5);
 }
 
-.door-0 { top: 98px; left: -8px; }
-.door-1 { top: 98px; right: -8px; }
-.door-2 { top: 176px; left: -8px; }
-.door-3 { top: 176px; right: -8px; }
+.door-0 { top: 82px; left: -7px; }
+.door-1 { top: 82px; right: -7px; }
+.door-2 { top: 148px; left: -7px; }
+.door-3 { top: 148px; right: -7px; }
+
+/* Headlights: soft forward-pointing glow cones, only visible when on. */
+.beam {
+  position: absolute;
+  top: -46px;
+  width: 70px;
+  height: 60px;
+  clip-path: polygon(30% 100%, 70% 100%, 100% 0%, 0% 0%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.beam.left { left: -14px; background: linear-gradient(0deg, rgba(255,244,200,0.35), transparent); }
+.beam.right { right: -14px; background: linear-gradient(0deg, rgba(255,244,200,0.35), transparent); }
+.beam.on { opacity: 1; }
+
+.indicator-lamp {
+  position: absolute;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #3a2e12;
+  z-index: 4;
+  transition: background 0.08s ease, box-shadow 0.08s ease;
+}
+
+.indicator-lamp.left { left: 6px; }
+.indicator-lamp.right { right: 6px; }
+
+.indicator-lamp.on {
+  background: var(--accent-2);
+  box-shadow: 0 0 10px 3px rgba(255, 122, 69, 0.8);
+}
+
+.wheel {
+  position: absolute;
+  width: 16px;
+  height: 34px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(90deg, #05070b 0 3px, #22293a 3px 6px);
+  border: 1px solid #05070b;
+  z-index: 1;
+  animation-name: wheel-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes wheel-spin {
+  from { background-position-x: 0; }
+  to { background-position-x: 12px; }
+}
+
+.wheel-fl { top: 38px; left: -9px; }
+.wheel-fr { top: 38px; right: -9px; }
+.wheel-rl { bottom: 38px; left: -9px; }
+.wheel-rr { bottom: 38px; right: -9px; }
+
+.brake-light {
+  position: absolute;
+  bottom: 4px;
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: #3a1116;
+  z-index: 3;
+  transition: background 0.1s ease, box-shadow 0.1s ease;
+}
+
+.brake-light.left { left: 14px; }
+.brake-light.right { right: 14px; }
+
+.brake-light.on {
+  background: var(--danger);
+  box-shadow: 0 0 14px 4px rgba(255, 77, 109, 0.85);
+}
+
+.horn-ring {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  border: 2px solid var(--fuel);
+  border-radius: 50%;
+  z-index: 1;
+  opacity: 0.9;
+  animation: horn-pulse 0.7s ease-out infinite;
+}
+
+.horn-ring.delay {
+  animation-delay: 0.25s;
+}
+
+@keyframes horn-pulse {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+.speed-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 30px, rgba(255,255,255,0.06) 30px 32px),
+    repeating-linear-gradient(180deg, transparent 0 46px, rgba(255,255,255,0.04) 46px 48px);
+  mask-image: linear-gradient(90deg, black 0 8%, transparent 22% 78%, black 92% 100%);
+  animation: road-scroll 0.35s linear infinite;
+}
 
 .pedal-row {
   display: flex;
@@ -390,6 +604,311 @@ button, input, select {
   background: var(--bg-raised);
   color: var(--fuel);
 }
+
+/* ---------- driver view --------------------------------------------------- */
+
+.driver-view {
+  position: relative;
+  height: 100%;
+  min-height: 520px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #05070c;
+  transition: filter 0.3s ease;
+}
+
+.dv-sky {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, #1a2740 0%, #0a0e18 55%, #05070c 100%);
+}
+
+.driver-view.lights-on .dv-sky {
+  background: radial-gradient(ellipse at 50% 0%, #24304a 0%, #0d1220 55%, #05070c 100%);
+}
+
+.dv-road-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 92%;
+  height: 78%;
+  transform: translateX(-50%);
+  clip-path: polygon(42% 0%, 58% 0%, 96% 100%, 4% 100%);
+  overflow: hidden;
+  background: linear-gradient(180deg, #171d2b 0%, #10141f 60%, #0b0e17 100%);
+}
+
+.dv-road {
+  position: absolute;
+  inset: -20% -10%;
+  background-image: repeating-linear-gradient(180deg, transparent 0 44px, rgba(255,255,255,0.035) 44px 48px);
+  animation-name: dv-road-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes dv-road-scroll {
+  from { background-position-y: 0; }
+  to { background-position-y: 48px; }
+}
+
+.dv-center-line {
+  position: absolute;
+  left: 50%;
+  top: -10%;
+  bottom: -10%;
+  width: 10px;
+  margin-left: -5px;
+  background-image: repeating-linear-gradient(180deg, var(--fuel) 0 34px, transparent 34px 76px);
+  opacity: 0.85;
+}
+
+.dv-edge {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, var(--accent) 40%, var(--accent));
+  opacity: 0.5;
+}
+
+.dv-edge-left { left: 6%; transform: rotate(3deg); transform-origin: bottom; }
+.dv-edge-right { right: 6%; transform: rotate(-3deg); transform-origin: bottom; }
+
+.dv-headlight-cone {
+  position: absolute;
+  bottom: 0;
+  width: 46%;
+  height: 60%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 244, 200, 0.28), transparent 70%);
+  pointer-events: none;
+}
+
+.dv-headlight-cone.left { left: -6%; }
+.dv-headlight-cone.right { right: -6%; }
+
+.dv-brake-vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 120px 30px rgba(255, 77, 109, 0.55);
+  pointer-events: none;
+  animation: dv-brake-flash 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes dv-brake-flash {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+.dv-horn-ripple {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  border: 3px solid var(--fuel);
+  border-radius: 50%;
+  animation: horn-pulse 0.6s ease-out infinite;
+  pointer-events: none;
+}
+
+.dv-indicator {
+  position: absolute;
+  top: 44%;
+  font-size: 26px;
+  color: #3a2e12;
+  transition: color 0.08s ease, text-shadow 0.08s ease;
+  z-index: 4;
+}
+
+.dv-indicator-left { left: 4%; }
+.dv-indicator-right { right: 4%; }
+
+.dv-indicator.on {
+  color: var(--accent-2);
+  text-shadow: 0 0 16px rgba(255, 122, 69, 0.9);
+}
+
+.dv-mirror {
+  position: absolute;
+  top: 8%;
+  width: 64px;
+  height: 30px;
+  border-radius: 8px 8px 4px 4px;
+  background: rgba(10, 14, 22, 0.75);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  z-index: 4;
+}
+
+.dv-mirror-left { left: 2%; transform: skewY(3deg); }
+.dv-mirror-right { right: 2%; transform: skewY(-3deg); }
+
+.dv-mirror .locked { color: var(--danger); }
+.dv-mirror .unlocked { color: var(--success); }
+
+.dv-hud {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.dv-hud-speed {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-family: var(--font-mono);
+  text-shadow: 0 0 12px rgba(53, 224, 200, 0.6);
+}
+
+.dv-hud-speed-num {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.dv-hud-speed-unit {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.dv-hud-bars {
+  display: flex;
+  gap: 14px;
+}
+
+.dv-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.dv-bar-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-faint);
+  font-weight: 700;
+}
+
+.dv-bar-track {
+  width: 90px;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.dv-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.15s linear;
+}
+
+.dv-bar-fill.rpm { background: var(--accent-2); }
+.dv-bar-fill.rpm.redline { background: var(--danger); }
+.dv-bar-fill.fuel { background: var(--fuel); }
+
+.dv-cockpit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6%;
+  height: 30%;
+  background: linear-gradient(180deg, transparent, #05070c 55%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.dv-dash-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 130%, rgba(53, 224, 200, 0.25), transparent 60%);
+}
+
+.dv-wheel {
+  position: absolute;
+  left: 50%;
+  bottom: -78px;
+  width: 190px;
+  height: 190px;
+  margin-left: -95px;
+  border: 14px solid #161c29;
+  border-radius: 50%;
+  box-shadow: 0 -6px 20px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.03);
+  z-index: 4;
+}
+
+.dv-wheel-hub {
+  position: absolute;
+  inset: 40%;
+  border-radius: 50%;
+  background: #0e131d;
+  border: 2px solid #232c3f;
+}
+
+.dv-wheel-spoke {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 44%;
+  background: #232c3f;
+  transform-origin: top center;
+}
+
+.spoke-1 { transform: translate(-50%, 0) rotate(0deg); }
+.spoke-2 { transform: translate(-50%, 0) rotate(120deg); }
+.spoke-3 { transform: translate(-50%, 0) rotate(240deg); }
+
+.dv-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 6;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 92%;
+}
+
+.dv-btn {
+  background: rgba(16, 21, 32, 0.85);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
+.dv-btn.accel:active { background: var(--accent); color: #06251f; }
+.dv-btn.brake:active { background: var(--danger); color: #2a0a10; }
+.dv-btn.left:active, .dv-btn.right:active { background: var(--accent-2); color: #200e05; }
+.dv-btn.horn:active { background: var(--fuel); color: #221a03; }
+.dv-btn.lights.active { background: var(--fuel); color: #221a03; border-color: var(--fuel); }
 
 /* ---------- traffic monitor --------------------------------------------- */
 

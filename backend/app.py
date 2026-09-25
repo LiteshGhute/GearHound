@@ -145,12 +145,36 @@ bus.subscribe(_on_any_frame)
 # ---------------------------------------------------------------------------
 # Socket.IO handlers
 # ---------------------------------------------------------------------------
+_connected_clients = 0
+_connected_lock = threading.Lock()
+
+
 @socketio.on("connect")
 def on_connect():
+    global _connected_clients
+    with _connected_lock:
+        _connected_clients += 1
     socketio.emit("car_state", state.snapshot())
     socketio.emit("vehicles", {"profiles": list_profiles(), "active": state.profile.key})
     socketio.emit("attacks_running", attacks.list_running())
     socketio.emit("captures", attacks.list_captures())
+
+
+@socketio.on("disconnect")
+def on_disconnect():
+    # A held pedal or indicator sends value:1 on mousedown and value:0 on
+    # mouseup, but a page refresh or a closed tab while a button is held
+    # never fires that mouseup. Without this, the shared physics loop would
+    # keep accelerating or turning forever with nobody driving. Only reset
+    # once the last client is gone, so one tab closing does not yank
+    # control away from someone still actively driving in another tab.
+    global _connected_clients
+    with _connected_lock:
+        _connected_clients = max(0, _connected_clients - 1)
+        should_reset = _connected_clients == 0
+    if should_reset:
+        set_throttle(0)
+        set_turning(0)
 
 
 @socketio.on("control")
