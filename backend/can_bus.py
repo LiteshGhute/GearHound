@@ -39,13 +39,34 @@ class CanBus:
         self._bus = can.interface.Bus(**kwargs)
         self._listeners = []
         self._lock = threading.Lock()
-        # 0.0 = clear bus, 1.0 = fully saturated. A flood attack raises this;
-        # the state layer uses it to probabilistically drop legit frames,
-        # simulating a real CAN bus losing arbitration under a flood.
-        self.congestion = 0.0
+        # 0.0 = clear bus, 1.0 = fully saturated. Keyed by attack id rather
+        # than a single shared number, so two concurrent flood attacks each
+        # contribute independently: stopping one doesn't erase the other's
+        # congestion (it used to, when this was a single float any flood
+        # could unconditionally zero out in its own cleanup).
+        self._congestion_lock = threading.Lock()
+        self._congestion_sources: dict[str, float] = {}
         self._rx_thread = threading.Thread(target=self._recv_loop, daemon=True)
         self._running = True
         self._rx_thread.start()
+
+    @property
+    def congestion(self) -> float:
+        with self._congestion_lock:
+            if not self._congestion_sources:
+                return 0.0
+            return max(self._congestion_sources.values())
+
+    def set_congestion(self, source_id: str, value: float) -> None:
+        """Register (or clear, with value <= 0) one attack's contribution
+        to bus congestion. The effective `congestion` is the max across all
+        active sources, so concurrent floods combine sensibly and each can
+        be stopped independently without disturbing the others."""
+        with self._congestion_lock:
+            if value <= 0:
+                self._congestion_sources.pop(source_id, None)
+            else:
+                self._congestion_sources[source_id] = value
 
     def send(self, arbitration_id: int, data: bytes) -> None:
         msg = can.Message(arbitration_id=arbitration_id, data=data, is_extended_id=False)

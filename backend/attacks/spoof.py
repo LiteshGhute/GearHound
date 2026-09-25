@@ -23,6 +23,10 @@ def run_spoof(attack, bus, profile: VehicleProfile) -> None:
         attack.log(f"unknown signal '{signal_name}' for profile '{profile.key}'")
         return
 
+    if value is None:
+        attack.log(f"no value given to spoof '{signal_name}' with")
+        return
+
     packed = pack_uint(value, spec.length)
     frame = bytearray(8)
     frame[spec.byte:spec.byte + spec.length] = packed
@@ -35,7 +39,7 @@ def run_spoof(attack, bus, profile: VehicleProfile) -> None:
     interval = 1.0 / rate_hz
     start = time.time()
     while not attack.stop_event.is_set():
-        if duration and (time.time() - start) > float(duration):
+        if duration is not None and (time.time() - start) >= float(duration):
             break
         bus.send(spec.arb_id, frame)
         attack.note_frame(spec.arb_id, frame)

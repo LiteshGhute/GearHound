@@ -18,18 +18,21 @@ def run_flood(attack, bus) -> None:
     interval = 1.0 / rate_hz
     # Saturate congestion quickly, cap below 1.0 so a trickle of legit
     # traffic can still get through (matches real-world partial bus-off).
-    bus.congestion = min(0.95, rate_hz / 1000)
+    # Registered under this attack's own id so a concurrent flood's
+    # contribution isn't disturbed when this one stops.
+    my_congestion = min(0.95, rate_hz / 1000)
+    bus.set_congestion(attack.id, my_congestion)
 
-    attack.log(f"flooding 0x{arb_id:03X} @ {rate_hz}Hz -- bus congestion {bus.congestion:.0%}")
+    attack.log(f"flooding 0x{arb_id:03X} @ {rate_hz}Hz -- bus congestion {my_congestion:.0%}")
 
     start = time.time()
     try:
         while not attack.stop_event.is_set():
-            if duration and (time.time() - start) > float(duration):
+            if duration is not None and (time.time() - start) >= float(duration):
                 break
             bus.send(arb_id, payload)
             attack.note_frame(arb_id, payload)
             attack.stop_event.wait(interval)
     finally:
-        bus.congestion = 0.0
+        bus.set_congestion(attack.id, 0.0)
         attack.log(f"flood stopped after {attack.frames_sent} frames, bus congestion cleared")

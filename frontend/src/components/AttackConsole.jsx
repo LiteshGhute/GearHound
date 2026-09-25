@@ -38,6 +38,10 @@ export default function AttackConsole({
   const [replayParams, setReplayParams] = useState({ capture: "", loop: false, speed: 1 });
 
   const parseHex = (v) => (typeof v === "string" && v.trim().toLowerCase().startsWith("0x") ? parseInt(v, 16) : parseInt(v, 10) || 0);
+  // `Number(x) || undefined` treats 0 as falsy and silently turns an
+  // intentional "duration: 0" into "unlimited" -- same bug the backend had.
+  // An empty field is the only case that should mean "no limit".
+  const numOrUndefined = (v) => (v === "" || v === null || v === undefined ? undefined : Number(v));
 
   const runningByKind = (kind) => attacksRunning.filter((a) => a.kind === kind);
 
@@ -113,6 +117,14 @@ export default function AttackConsole({
             />
           </div>
           <div className="field-row">
+            <input
+              type="number"
+              value={fuzzParams.duration}
+              onChange={(e) => setFuzzParams({ ...fuzzParams, duration: e.target.value })}
+              placeholder="duration (s, blank = unlimited)"
+            />
+          </div>
+          <div className="field-row">
             <button
               className="btn primary"
               onClick={() =>
@@ -121,7 +133,7 @@ export default function AttackConsole({
                   id_max: parseHex(fuzzParams.id_max),
                   rate_hz: Number(fuzzParams.rate_hz),
                   mode: fuzzParams.mode,
-                  duration: Number(fuzzParams.duration) || undefined,
+                  duration: numOrUndefined(fuzzParams.duration),
                 })
               }
             >
@@ -146,13 +158,21 @@ export default function AttackConsole({
             />
           </div>
           <div className="field-row">
+            <input
+              type="number"
+              value={floodParams.duration}
+              onChange={(e) => setFloodParams({ ...floodParams, duration: e.target.value })}
+              placeholder="duration (s, blank = unlimited)"
+            />
+          </div>
+          <div className="field-row">
             <button
               className="btn primary"
               onClick={() =>
                 startAttack("flood", {
                   arb_id: parseHex(floodParams.arb_id),
                   rate_hz: Number(floodParams.rate_hz),
-                  duration: Number(floodParams.duration) || undefined,
+                  duration: numOrUndefined(floodParams.duration),
                 })
               }
             >
@@ -183,6 +203,20 @@ export default function AttackConsole({
             />
           </div>
           <div className="field-row">
+            <input
+              type="number"
+              value={spoofParams.rate_hz}
+              onChange={(e) => setSpoofParams({ ...spoofParams, rate_hz: e.target.value })}
+              placeholder="Hz"
+            />
+            <input
+              type="number"
+              value={spoofParams.duration}
+              onChange={(e) => setSpoofParams({ ...spoofParams, duration: e.target.value })}
+              placeholder="duration (s, blank = unlimited)"
+            />
+          </div>
+          <div className="field-row">
             <button
               className="btn primary"
               onClick={() =>
@@ -190,7 +224,7 @@ export default function AttackConsole({
                   signal: spoofParams.signal,
                   value: Number(spoofParams.value),
                   rate_hz: Number(spoofParams.rate_hz),
-                  duration: Number(spoofParams.duration) || undefined,
+                  duration: numOrUndefined(spoofParams.duration),
                 })
               }
             >

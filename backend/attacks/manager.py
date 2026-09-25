@@ -24,6 +24,13 @@ class AttackManager:
 
     # ---- recording (for replay) --------------------------------------
     def start_capture(self, name: str) -> dict:
+        # Starting a new recording used to silently orphan an in-progress
+        # one: its frame count would just freeze with no event telling
+        # anyone it stopped growing. Auto-finalize it instead, so it becomes
+        # a normal, complete, listed capture rather than a stuck one.
+        if self._active_capture is not None:
+            self.stop_capture()
+
         cap = CaptureBuffer(name)
         cap.start()
         self.captures[name] = cap
@@ -83,7 +90,12 @@ class AttackManager:
         attack = self.running.get(attack_id)
         if attack is None:
             return {"error": f"no running attack '{attack_id}'"}
-        attack.stop()
+        # An attack that already finished on its own (duration elapsed,
+        # replay ended) carries a meaningful terminal status like
+        # "completed" -- only overwrite it with "stopped" if it was
+        # actually still running when this was called.
+        if attack.status == "running":
+            attack.stop()
         return attack.to_dict()
 
     def list_running(self) -> list:

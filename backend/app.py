@@ -8,7 +8,7 @@ import os
 import threading
 import time
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -54,17 +54,37 @@ MAX_SPEED = 220
 MAX_RPM = 6500
 IDLE_RPM = 800
 
+# Tracks which client's mousedown last claimed each "held" control, so a
+# disconnect can reset ONLY the input that client actually owned. Counting
+# total connected clients (an earlier version of this) gets this wrong: an
+# idle spectator tab left open masks a runaway car left by the tab that was
+# actually driving and then disconnected mid-press.
+_owners_lock = threading.Lock()
+_control_owners = {"throttle": None, "turning": None, "horn": None}
 
-def set_throttle(value: int) -> None:
+
+def _set_owner(control: str, sid, active: bool) -> None:
+    with _owners_lock:
+        _control_owners[control] = sid if active else None
+
+
+def set_throttle(value: int, sid=None) -> None:
     global _throttle
     with _control_lock:
         _throttle = value
+    _set_owner("throttle", sid, value != 0)
 
 
-def set_turning(value: int) -> None:
+def set_turning(value: int, sid=None) -> None:
     global _turning
     with _control_lock:
         _turning = value
+    _set_owner("turning", sid, value != 0)
+
+
+def set_horn(value: int, sid=None) -> None:
+    state.write_signal("horn", 1 if value else 0)
+    _set_owner("horn", sid, bool(value))
 
 
 def physics_loop() -> None:
@@ -145,15 +165,8 @@ bus.subscribe(_on_any_frame)
 # ---------------------------------------------------------------------------
 # Socket.IO handlers
 # ---------------------------------------------------------------------------
-_connected_clients = 0
-_connected_lock = threading.Lock()
-
-
 @socketio.on("connect")
 def on_connect():
-    global _connected_clients
-    with _connected_lock:
-        _connected_clients += 1
     socketio.emit("car_state", state.snapshot())
     socketio.emit("vehicles", {"profiles": list_profiles(), "active": state.profile.key})
     socketio.emit("attacks_running", attacks.list_running())
@@ -162,28 +175,32 @@ def on_connect():
 
 @socketio.on("disconnect")
 def on_disconnect():
-    # A held pedal or indicator sends value:1 on mousedown and value:0 on
-    # mouseup, but a page refresh or a closed tab while a button is held
-    # never fires that mouseup. Without this, the shared physics loop would
-    # keep accelerating or turning forever with nobody driving. Only reset
-    # once the last client is gone, so one tab closing does not yank
-    # control away from someone still actively driving in another tab.
-    global _connected_clients
-    with _connected_lock:
-        _connected_clients = max(0, _connected_clients - 1)
-        should_reset = _connected_clients == 0
-    if should_reset:
+    # A held pedal, indicator, or horn press sends an "active" value on
+    # mousedown and a neutral one on mouseup, but a page refresh or a
+    # closed tab while it's held never fires that mouseup. Reset only the
+    # controls THIS client actually owned (see _control_owners above), so
+    # an idle spectator tab disconnecting never touches input someone else
+    # is still actively holding, and a driving tab disconnecting can't be
+    # masked by other tabs merely being connected.
+    sid = request.sid
+    with _owners_lock:
+        owned = [name for name, owner in _control_owners.items() if owner == sid]
+    if "throttle" in owned:
         set_throttle(0)
+    if "turning" in owned:
         set_turning(0)
+    if "horn" in owned:
+        set_horn(0)
 
 
 @socketio.on("control")
 def on_control(data, *_ignored):
     signal = data.get("signal")
+    sid = request.sid
     if signal == "throttle":
-        set_throttle(int(data.get("value", 0)))
+        set_throttle(int(data.get("value", 0)), sid)
     elif signal == "turning":
-        set_turning(int(data.get("value", 0)))
+        set_turning(int(data.get("value", 0)), sid)
     elif signal == "door":
         idx = int(data.get("index", 0))
         locked = bool(data.get("locked"))
@@ -198,7 +215,7 @@ def on_control(data, *_ignored):
     elif signal == "headlights":
         state.write_signal("headlights", 1 if data.get("value") else 0)
     elif signal == "horn":
-        state.write_signal("horn", 1 if data.get("value") else 0)
+        set_horn(1 if data.get("value") else 0, sid)
 
 
 @socketio.on("vehicle_select")

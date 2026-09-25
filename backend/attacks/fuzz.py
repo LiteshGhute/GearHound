@@ -14,16 +14,19 @@ def run_fuzz(attack, bus) -> None:
     mode = attack.params.get("mode", "random")  # "random" | "incremental"
     duration = attack.params.get("duration")  # seconds, None = until stopped
 
+    if id_min > id_max:
+        attack.log(f"invalid range: id_min (0x{id_min:03X}) is above id_max (0x{id_max:03X})")
+        return
+
     attack.log(
         f"fuzzing IDs 0x{id_min:03X}-0x{id_max:03X} @ {rate_hz}Hz mode={mode}"
     )
 
     interval = 1.0 / rate_hz
     current_id = id_min
-    started = attack.started_at
 
     while not attack.stop_event.is_set():
-        if duration and (attack.frames_sent * interval) > float(duration):
+        if duration is not None and (attack.frames_sent * interval) >= float(duration):
             break
 
         if mode == "incremental":
