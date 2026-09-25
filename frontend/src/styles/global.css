@@ -1,0 +1,635 @@
+:root {
+  --bg: #0a0e14;
+  --bg-panel: #10151e;
+  --bg-panel-2: #141a26;
+  --bg-raised: #1a2130;
+  --border: #232b3d;
+  --text: #e6ebf5;
+  --text-dim: #8893a8;
+  --text-faint: #5a6478;
+  --accent: #35e0c8;
+  --accent-2: #ff7a45;
+  --fuel: #ffd166;
+  --danger: #ff4d6d;
+  --success: #52e07b;
+  --font-display: "Rajdhani", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+  height: 100%;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button, input, select {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ---------- layout ---------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bg-panel-2), var(--bg));
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand-mark {
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.brand-name {
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+}
+
+.brand-tag {
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.conn-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
+
+.conn-dot.up {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.app-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(340px, 480px) 1fr;
+  gap: 18px;
+  padding: 18px 24px 24px;
+  min-height: 0; /* let children use height:100% inside a flex ancestor */
+}
+
+@media (max-width: 980px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+}
+
+.col-dashboard, .col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* The attack console column is naturally much taller than the dashboard
+   (four attack cards + log vs. a handful of gauges). Rather than one long
+   page scroll -- where the dashboard scrolls out of view while you're
+   still configuring an attack -- give each column its own scroll region:
+   the dashboard stays put, the console scrolls independently beside it. */
+@media (min-width: 981px) {
+  .app-grid {
+    overflow: hidden;
+  }
+
+  .col-dashboard {
+    overflow: hidden;
+  }
+
+  .col-side {
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.panel-header h2, .panel-header h3 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.panel-header h3 {
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+/* ---------- vehicle selector ------------------------------------------ */
+
+.vehicle-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.vehicle-chip {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vehicle-chip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.vehicle-chip.active {
+  background: var(--accent);
+  color: #06110f;
+  border-color: var(--accent);
+}
+
+/* ---------- dashboard panel --------------------------------------------- */
+
+.dashboard-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.congestion-banner {
+  background: rgba(255, 77, 109, 0.12);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.gauge-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gauge-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.gauge-value {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.15s linear, d 0.15s linear;
+}
+
+.gauge-number {
+  fill: var(--text);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.gauge-unit {
+  fill: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.gauge-label {
+  margin-top: 4px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.signal-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.signal-btn, .light-btn {
+  flex: 1;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 10px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.signal-btn.active {
+  background: var(--accent-2);
+  color: #200e05;
+  border-color: var(--accent-2);
+  box-shadow: 0 0 14px rgba(255, 122, 69, 0.55);
+}
+
+.light-btn.active {
+  background: var(--fuel);
+  color: #221a03;
+  border-color: var(--fuel);
+  box-shadow: 0 0 14px rgba(255, 209, 102, 0.5);
+}
+
+.car-topdown {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 20px;
+}
+
+.car-body {
+  position: relative;
+  width: 180px;
+  height: 260px;
+  background: linear-gradient(180deg, #1c2436, #131924);
+  border: 1px solid var(--border);
+  border-radius: 70px / 40px;
+}
+
+.windshield {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  right: 30px;
+  height: 60px;
+  background: rgba(53, 224, 200, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+}
+
+.door {
+  position: absolute;
+  width: 46px;
+  height: 70px;
+  border-radius: 8px;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.door.locked {
+  background: var(--danger);
+  color: #2a0a10;
+  box-shadow: 0 0 10px rgba(255, 77, 109, 0.5);
+}
+
+.door.unlocked {
+  background: var(--success);
+  color: #06210f;
+  box-shadow: 0 0 10px rgba(82, 224, 123, 0.5);
+}
+
+.door-0 { top: 98px; left: -8px; }
+.door-1 { top: 98px; right: -8px; }
+.door-2 { top: 176px; left: -8px; }
+.door-3 { top: 176px; right: -8px; }
+
+.pedal-row {
+  display: flex;
+  gap: 10px;
+}
+
+.pedal {
+  flex: 1;
+  padding: 16px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pedal.accel {
+  background: linear-gradient(180deg, #1c3b34, #10221d);
+  color: var(--accent);
+}
+
+.pedal.accel:active {
+  background: var(--accent);
+  color: #06251f;
+}
+
+.pedal.brake {
+  background: linear-gradient(180deg, #3a1c22, #221013);
+  color: var(--danger);
+}
+
+.pedal.brake:active {
+  background: var(--danger);
+  color: #2a0a10;
+}
+
+.pedal.horn {
+  background: var(--bg-raised);
+  color: var(--fuel);
+}
+
+/* ---------- traffic monitor --------------------------------------------- */
+
+.traffic-panel, .attack-console {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+
+.panel-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-input {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  width: 150px;
+}
+
+.mode-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mode-toggle button {
+  background: var(--bg-raised);
+  border: none;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mode-toggle button.active {
+  background: var(--accent);
+  color: #06110f;
+}
+
+.freeze-btn {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.freeze-btn.active {
+  background: var(--fuel);
+  color: #221a03;
+  border-color: var(--fuel);
+}
+
+.traffic-table {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.traffic-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 60px;
+  gap: 10px;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.traffic-table.log .traffic-row {
+  grid-template-columns: 70px 1fr;
+}
+
+.traffic-row.header {
+  color: var(--text-faint);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+}
+
+.col-id {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.col-count {
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.col-data {
+  display: flex;
+  gap: 5px;
+}
+
+.byte {
+  color: var(--text-dim);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.byte.changed {
+  color: #06110f;
+  background: var(--accent);
+  font-weight: 700;
+}
+
+.traffic-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.empty-hint {
+  color: var(--text-faint);
+  font-size: 12.5px;
+  padding: 14px 6px;
+  text-align: center;
+}
+
+/* ---------- attack console ---------------------------------------------- */
+
+.attack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.attack-card {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.attack-card-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.attack-card-subtitle {
+  color: var(--text-faint);
+  font-size: 11.5px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.field-row input, .field-row select {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  flex: 1;
+  min-width: 90px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #06110f;
+}
+
+.btn.primary:disabled {
+  background: var(--border);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.btn.danger {
+  background: rgba(255, 77, 109, 0.15);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.attack-log {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.log-scroll {
+  max-height: 220px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.log-line {
+  padding: 3px 4px;
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.log-kind {
+  color: var(--accent-2);
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.log-status {
+  color: var(--text-faint);
+}
