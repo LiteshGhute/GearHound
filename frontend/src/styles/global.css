@@ -281,7 +281,9 @@ button, input, select {
   fill: none;
   stroke-width: 10;
   stroke-linecap: round;
-  transition: stroke-dasharray 0.15s linear, d 0.15s linear;
+  /* Only stroke-dashoffset animates (the path itself is fixed, see
+     Gauge.jsx) -- a single number transitions safely, unlike `d`. */
+  transition: stroke-dashoffset 0.15s linear;
 }
 
 .gauge-number {
